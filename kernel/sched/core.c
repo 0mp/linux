@@ -44,6 +44,9 @@ EXPORT_TRACEPOINT_SYMBOL_GPL(sched_update_nr_running_tp);
 
 DEFINE_PER_CPU_SHARED_ALIGNED(struct rq, runqueues);
 
+/* dsites 2021.09.19 */
+#include <linux/kutrace.h>
+
 #ifdef CONFIG_SCHED_DEBUG
 /*
  * Debugging: various feature bits
@@ -2855,6 +2858,9 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
 
 		success = 1;
 		trace_sched_waking(p);
+		/* dsites 2021.09.19 */
+		kutrace1(KUTRACE_RUNNABLE, p->pid);
+
 		p->state = TASK_RUNNING;
 		trace_sched_wakeup(p);
 		goto out;
@@ -2872,6 +2878,8 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
 		goto unlock;
 
 	trace_sched_waking(p);
+	/* dsites 2021.09.19 */
+	kutrace1(KUTRACE_RUNNABLE, p->pid);
 
 	/* We're going to change ->state: */
 	success = 1;
@@ -4424,6 +4432,9 @@ static void __sched notrace __schedule(bool preempt)
 	struct rq *rq;
 	int cpu;
 
+	/* dsites 2021.09.19 */
+	kutrace1(KUTRACE_SYSCALL64 + KUTRACE_SCHEDSYSCALL, 0);
+
 	cpu = smp_processor_id();
 	rq = cpu_rq(cpu);
 	prev = rq->curr;
@@ -4531,6 +4542,11 @@ static void __sched notrace __schedule(bool preempt)
 		psi_sched_switch(prev, next, !task_on_rq_queued(prev));
 
 		trace_sched_switch(preempt, prev, next);
+		/* dsites 2021.09.19 */
+		/* Put pid name into trace first time */
+		kutrace_pidname(next);
+		kutrace1(KUTRACE_USERPID, next->pid);
+
 
 		/* Also unlocks the rq: */
 		rq = context_switch(rq, prev, next, &rf);
@@ -4540,6 +4556,9 @@ static void __sched notrace __schedule(bool preempt)
 	}
 
 	balance_callback(rq);
+
+	/* dsites 2021.09.19 */
+	kutrace1(KUTRACE_SYSRET64 + KUTRACE_SCHEDSYSCALL, 0);
 }
 
 void __noreturn do_task_dead(void)

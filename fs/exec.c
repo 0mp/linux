@@ -74,6 +74,9 @@
 
 #include <trace/events/sched.h>
 
+/* dsites 2021.09.19 */
+#include <linux/kutrace.h>
+
 static int bprm_creds_from_file(struct linux_binprm *bprm);
 
 int suid_dumpable = 0;
@@ -1913,6 +1916,11 @@ static int do_execveat_common(int fd, struct filename *filename,
 		goto out_free;
 
 	retval = bprm_execve(bprm, fd, filename, flags);
+
+	/* dsites 2021.09.19 */
+	/* Unconditionally put new pid name into trace */
+	kutrace_pidrename(current);
+
 out_free:
 	free_bprm(bprm);
 
